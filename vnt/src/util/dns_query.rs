@@ -261,7 +261,7 @@ fn check_for_redirect(domain: &String) -> anyhow::Result<Option<String>> {
 
         // 发送 HTTP 请求
         let response = match Request::new(&uri)
-            .timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(3))
             .redirect_policy(RedirectPolicy::Limit(0))
             .send(&mut response_body)
         {
@@ -306,9 +306,11 @@ fn check_for_redirect(domain: &String) -> anyhow::Result<Option<String>> {
 
 /// 去掉 http:// 或 https:// 前缀
 fn remove_http_prefix(url: &str) -> String {
-    url.trim_start_matches("http://")
-        .trim_start_matches("https://")
-        .to_string()
+    let url = url.trim_start_matches("http://")
+                 .trim_start_matches("https://");
+    let url = url.trim_end_matches('/');
+    
+    url.to_string()
 }
 
 fn query<'a>(
