@@ -214,8 +214,8 @@ fn parse_host_port(addr: &str) -> bool {
     // 处理 IPv6 地址（格式为 [::1]:8080）
     if addr.starts_with('[') {
         if let Some(idx) = addr.rfind(']') {
-            if let Some(port_idx) = addr[idx+1..].find(':') {
-                let port = &addr[idx+1+port_idx+1..]; // 提取端口部分
+            if let Some(port_idx) = addr[idx + 1..].find(':') {
+                let port = &addr[idx + 1 + port_idx + 1..]; // 提取端口部分
                 return !port.is_empty() && port.chars().all(|c| c.is_numeric());
             }
         }
