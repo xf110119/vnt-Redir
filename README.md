@@ -1,5 +1,7 @@
 # VNT
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lmq8267/vnt-Redir)
+
 🚀An efficient VPN
 
 🚀一个简单、高效、能快速组建虚拟局域网的工具
