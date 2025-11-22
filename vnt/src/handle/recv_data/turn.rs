@@ -7,12 +7,14 @@ use anyhow::Context;
 
 /// 处理客户端中转包
 #[derive(Clone)]
-pub struct TurnPacketHandler {}
+pub struct TurnPacketHandler {  
+    disable_relay: bool,  
+}
 
-impl TurnPacketHandler {
-    pub fn new() -> Self {
-        Self {}
-    }
+impl TurnPacketHandler {  
+    pub fn new(disable_relay: bool) -> Self {  
+        Self { disable_relay }  
+    }  
 }
 
 impl PacketHandler for TurnPacketHandler {
@@ -24,6 +26,10 @@ impl PacketHandler for TurnPacketHandler {
         context: &ChannelContext,
         _current_device: &CurrentDeviceInfo,
     ) -> anyhow::Result<()> {
+        // 如果禁用中继,直接返回  
+        if self.disable_relay {  
+            return Ok(());  
+        }
         // ttl减一
         let ttl = net_packet.incr_ttl();
         if ttl > 0 {
