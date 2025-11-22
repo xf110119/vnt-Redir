@@ -75,10 +75,10 @@ pub fn start_port_mapping(
         .name("portMapping".into())
         .spawn(move || {
             let runtime = tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .thread_name("portMapping")
-            .build()?;
-            runtime.block_on(start_port_mapping0(vec))?;
+                .enable_all()
+                .thread_name("portMapping")
+                .build().unwrap();
+            runtime.block_on(start_port_mapping0(vec)).unwrap();
             runtime.block_on(async {
                 let _ = receiver.await;
             });
