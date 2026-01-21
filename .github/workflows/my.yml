@@ -1,0 +1,75 @@
+name: Build VNT-CLI for K2P (Final Optimized)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          repository: vnt-dev/vnt
+          ref: main
+
+      - name: Install Rust Nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly
+          components: rust-src
+
+      - name: Install Toolchain (MIPSEL Musl)
+        run: |
+          mkdir -p /opt/musl_gcc
+          # 使用脚本中验证过的工具链下载点
+          wget -c https://github.com/lmq8267/Toolchain/releases/download/musl-cross/mipsel-linux-muslsf-cross.tgz -P /opt/musl_gcc/
+          tar zxf /opt/musl_gcc/mipsel-linux-muslsf-cross.tgz -C /opt/musl_gcc/
+          # 建立软链接
+          sudo ln -s /opt/musl_gcc/mipsel-linux-muslsf-cross/bin/*gcc /usr/bin/
+          
+          # 核心补全步骤：解决 crt1.o / libunwind 缺失问题
+          cd /opt/musl_gcc/mipsel-linux-muslsf-cross/lib/gcc/mipsel-linux-muslsf/11.2.1
+          cp libgcc_eh.a libunwind.a || true
+
+      - name: Configure Cargo
+        run: |
+          mkdir -p ~/.cargo
+          cat >> ~/.cargo/config <<EOF
+          [target.mipsel-unknown-linux-musl]
+          linker = "mipsel-linux-muslsf-gcc"
+          rustflags = [
+            "-C", "target-feature=+crt-static",
+            "-C", "link-arg=-static",
+            "-C", "link-arg=-no-pie",
+            "-C", "relocation-model=static",
+            "-L", "/opt/musl_gcc/mipsel-linux-muslsf-cross/mipsel-linux-muslsf/lib",
+            "-L", "/opt/musl_gcc/mipsel-linux-muslsf-cross/lib/gcc/mipsel-linux-muslsf/11.2.1"
+          ]
+          EOF
+
+      - name: Build (Extreme Minimal)
+        env:
+          # 强制开启软浮点支持，适配 K2P
+          RUSTFLAGS: "-C target-cpu=mips32r2 -C target-feature=+soft-float"
+        run: |
+          # 去掉所有 default features，只留基础功能以减小内存占用
+          cargo +nightly build --package vnt-cli --release \
+            --target mipsel-unknown-linux-musl \
+            -Z build-std=std,panic_abort \
+            --no-default-features \
+            --features "wss"
+
+      - name: Strip and UPX
+        run: |
+          # 使用对应工具链的 strip 去除符号表
+          /opt/musl_gcc/mipsel-linux-muslsf-cross/bin/mipsel-linux-muslsf-strip target/mipsel-unknown-linux-musl/release/vnt-cli
+          # 安装并执行 UPX 压缩
+          sudo apt-get install -y upx-ucl
+          upx --lzma --best target/mipsel-unknown-linux-musl/release/vnt-cli
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vnt-cli-k2p
+          path: target/mipsel-unknown-linux-musl/release/vnt-cli
